@@ -1,0 +1,47 @@
+# code.coze.cn pipeline configuration
+# This pipeline builds the Docker image, starts docker-compose services (web and worker), and keeps the job running.
+# Save as .coze/pipeline.yml in the repository root.
+
+version: "1"
+
+env:
+  # Platform will inject these; set them in the pipeline settings / project secrets on code.coze.cn
+  - name: REDIS_URL
+    required: true
+  - name: ELEVENLABS_API_KEY
+    required: false
+  - name: ELEVEN_VOICE_ID
+    required: false
+  - name: PEXELS_API_KEY
+    required: false
+  - name: OPENAI_API_KEY
+    required: false
+  - name: PORT
+    required: false
+    default: "8000"
+
+steps:
+  - name: Checkout
+    image: alpine/git:latest
+    commands:
+      - git --version
+      - echo "repository checked out by platform"
+
+  - name: Build and run
+    image: docker:24-dind
+    privileged: true
+    services:
+      - name: docker
+    commands:
+      - apk add --no-cache curl docker-compose
+      - docker --version
+      - docker-compose --version
+      - echo "Building images..."
+      - docker-compose pull --ignore-pull-failures || true
+      - docker-compose build --no-cache
+      - echo "Starting services..."
+      - docker-compose up -d
+      - echo "Waiting for web to be ready..."
+      - for i in 1 2 3 4 5; do if curl -sS http://localhost:${PORT-/8000}/static/index.html >/dev/null 2>&1; then echo "web ready"; break; else echo "waiting ($i)..."; sleep 5; fi; done
+      - echo "Services started."
+      - tail -f /dev/null
