@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  web:
+    build: .
+    command: sh -c "uvicorn backend.app.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+    environment:
+      REDIS_URL: ${REDIS_URL}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY}
+      ELEVEN_VOICE_ID: ${ELEVEN_VOICE_ID}
+      PEXELS_API_KEY: ${PEXELS_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    volumes:
+      - .:/app:cached
+
+  worker:
+    build: .
+    command: sh -c "python -m backend.app.worker"
+    environment:
+      REDIS_URL: ${REDIS_URL}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY}
+      ELEVEN_VOICE_ID: ${ELEVEN_VOICE_ID}
+      PEXELS_API_KEY: ${PEXELS_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    volumes:
+      - .:/app:cached
